@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Add Item</title>
+  <link rel="stylesheet" href="add.css">
+</head>
+<body>
+  <div id="container">
+    <h2>Add New Item</h2>
+    <form id="addForm">
+      <label for="title">Title:</label>
+      <input type="text" id="title" name="title" required>
+      <label for="describe">Description:</label>
+      <input type="text" id="describe" name="describe" required>
+      <label for="instruction">Instruction:</label>
+      <textarea id="instruction" name="instruction" required style="height: 300px;"></textarea>
+      <button type="submit">Save</button>
+    </form>
+  </div>
+  <script src="add.js" type="module"></script>
+</body>
+</html>

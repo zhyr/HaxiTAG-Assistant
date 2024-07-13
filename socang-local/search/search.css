@@ -1,0 +1,24 @@
+#container {
+  width: 400px;
+  padding: 20px;
+}
+
+#searchResults {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#searchResults th, #searchResults td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+#searchResults th {
+  background-color: #f2f2f2;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+}

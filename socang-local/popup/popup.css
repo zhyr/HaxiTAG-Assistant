@@ -1,0 +1,23 @@
+#container {
+  width: 600px;
+  padding: 5px;
+}
+
+#dataList {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#dataList th, #dataList td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+#dataList th {
+  background-color: #f2f2f2;
+}
+
+button {
+  margin: 5px;
+  width: min-content;
+}
