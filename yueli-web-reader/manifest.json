@@ -1,0 +1,15 @@
+// manifest.json
+{
+  "manifest_version": 3,
+  "name": "yueli-jina",
+  "version": "1.0",
+  "description": "Open current page with Jina Reader",
+  "permissions": ["activeTab", "storage"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html"
+}

@@ -1,26 +1,30 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Socang Local</title>
-  <link rel="stylesheet" href="popup.css">
-</head>
-<body>
-  <div id="container">
-    <button id="searchButton" style="margin: left;">Search</button>
-    <button id="addButton">Add</button>
-    <table id="dataList" style="height: auto;">
-      <thead>
-        <tr>
-          <th style="min-width: auto;">Action</th>
-          <th style="width: fit-content;">Title</th>
-          <th style="width: fit-content;">Description</th>
-          <th>Instruction</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-  <script src="popup.js" type="module"></script>
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Popup</title>
+        <link rel="stylesheet" href="popup.css" />
+    </head>
+    <body>
+        <div id="container">
+            <button id="searchButton">Search</button>
+            <button id="editButton">Edit</button>
+            <button id="addButton">Add</button>
+            <table id="dataList">
+                <thead>
+                    <tr>
+                        <th>Action</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Instruction</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Table rows will be dynamically added here -->
+                </tbody>
+            </table>
+        </div>
+        <script type="module" src="popup.js"></script>
+    </body>
 </html>
