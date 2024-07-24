@@ -1,27 +1,48 @@
 {
   "manifest_version": 3,
   "name": "HaxiTAG Assistant",
-  "version": "0.7.0",
-  "description": "HaxiTAG AI助手小工具,支持ChatGPT、Claude和Kimi",
-  "icons": {
-    "48": "icon.png"
-  },
-  "permissions": ["activeTab"],
+  "version": "1.7.0",
+  "description": "HaxiTAG AI助手小工具,支持ChatGPT、Claude、Kimi和通义千问",
+  "permissions": [
+    "storage"
+  ],
   "host_permissions": [
     "*://chat.openai.com/*",
     "*://chatgpt.com/*",
     "*://claude.ai/*",
-    "*://kimi.moonshot.cn/*"
+    "*://kimi.moonshot.cn/*",
+    "*://tongyi.aliyun.com/*"
   ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
   "content_scripts": [
     {
       "matches": [
         "*://chat.openai.com/*",
         "*://chatgpt.com/*",
         "*://claude.ai/*",
-        "*://kimi.moonshot.cn/*"
+        "*://kimi.moonshot.cn/*",
+        "*://tongyi.aliyun.com/*"
       ],
-      "js": ["content.js"]
+      "js": ["src/content.js"],
+      "css": ["src/styles.css"]
     }
-  ]
+  ],
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
 }

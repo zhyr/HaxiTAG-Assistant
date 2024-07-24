@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "HaxiTAG Assistant",
+  "version": "0.7.0",
+  "description": "HaxiTAG AI助手小工具,支持ChatGPT、Claude和Kimi",
+  "icons": {
+    "48": "icon.png"
+  },
+  "permissions": [
+    "activeTab"
+  ],
+  "host_permissions": [
+    "*://chat.openai.com/*",
+    "*://chatgpt.com/*",
+    "*://claude.ai/*",
+    "*://kimi.moonshot.cn/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://chat.openai.com/*",
+        "*://chatgpt.com/*",
+        "*://claude.ai/*",
+        "*://kimi.moonshot.cn/*"
+      ],
+      "js": [
+        "src/content.js"
+      ]
+    }
+  ]
+}
