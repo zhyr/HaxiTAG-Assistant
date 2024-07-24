@@ -1,7 +1,10 @@
 # English HaxiTAG-Assistant instroduction
 HaxiTAG Assistant personal chatbot plugin for personalised task. Personalized tasks, local save instructions and private context data. HaxiTAG Assistant will be support some personal centric workflow, especial in infomation and knowledge management.It will make you feel like you have the power of a multitasking superhero when handling data processing and copywriting tasks.
+![chatGPT](https://github.com/zhyr/HaxiTAG-Assistant/blob/main/images/chatGPT.png)
 
 You can use online chatgpt, Claude ai, kimi and qwen online services. Support the interaction front-end of local models such as openwebui using local models.
+
+![claude](https://github.com/zhyr/HaxiTAG-Assistant/blob/main/images/Claude.png)
 
 -when you visit chatGPT, Claude AI,kimi,Tongyi qianwen chatbot, you can use this plug-in management of the instruction, context text, significantly reducing your work to repeat the information back and forth carry.
 
@@ -13,7 +16,7 @@ You can use online chatgpt, Claude ai, kimi and qwen online services. Support th
 
 ## Usage Steps：
 ### 1，download
-Click to download the zip archive of the warehouse
+[Click to download the zip ](https://github.com/zhyr/HaxiTAG-Assistant/releases/tag/HaxiTAG-Assistant-v1.7.0)archive of the warehouse
 Extract it to a local directory, such as in the documents/HaxiTAG-Assistant
 
 ### 2，install
@@ -36,10 +39,12 @@ https://www.haxitag.ai/p/application-suite.html
 
 # HaxiTAG-Assistant中文介绍
 HaxiTAG Assistant用于个性化任务的聊天机器人插件。支持自定义个性化任务、本地保存指令和私人上下文数据。HaxiTAG Assistant 将支持一些以个人为中心的工作流程，特别是在信息和知识管理方面。它会让你在数据处理、文案相关工作时感觉有三头六臂似的战斗力。
+![kimi](https://github.com/zhyr/HaxiTAG-Assistant/blob/main/images/kimi.png)
+
 
 ## 使用步骤：
 ### 1，下载
-点击下载仓库的zip压缩包
+[点击下载仓库的zip压缩包](https://github.com/zhyr/HaxiTAG-Assistant/releases/tag/HaxiTAG-Assistant-v1.7.0)
 解压到本地目录，比如文稿中HaxiTAG-Assistant
 ### 2，安装
 在chrome浏览器中打开“设置”>“扩展程序”>“管理扩展程序”，打开右上角“开发者模式”，点击左上角，“加载已解压的扩展程序”，即可完成安装，启用HaxiTAG-Assistant。
@@ -57,6 +62,7 @@ HaxiTAG Assistant用于个性化任务的聊天机器人插件。支持自定义
 
 更多的介绍可参考，
 https://www.haxitag.ai/p/application-suite.html
+![通义千问](https://github.com/zhyr/HaxiTAG-Assistant/blob/main/images/qianwen.png)
 
 持续完善和开发的模块：
 
