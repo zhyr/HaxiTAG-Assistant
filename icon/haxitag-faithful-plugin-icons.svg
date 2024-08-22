@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <style>
+      .haxitag-bg { fill: #1da1f2; }
+      .haxitag-fg { fill: #ffffff; }
+      .blogger-dot { fill: #ff5722; }
+    </style>
+  </defs>
+  
+  <!-- 128x128 icon -->
+  <g id="icon-128">
+    <!-- Main haxitag design -->
+    <rect class="haxitag-bg" x="0" y="0" width="128" height="128" rx="24" ry="24"/>
+    <rect class="haxitag-fg" x="16" y="16" width="96" height="96" rx="16" ry="16"/>
+    <path class="haxitag-bg" d="M32,32 L96,32 L96,96 L32,96 Z"/>
+    <path class="haxitag-fg" d="M48,48 L80,48 L80,80 L48,80 Z"/>
+    
+    <!-- Subtle Blogger reference -->
+    <circle class="blogger-dot" cx="112" cy="112" r="8"/>
+  </g>
+  
+  <!-- 48x48 icon -->
+  <g id="icon-48" transform="scale(0.375) translate(128 128)">
+    <use href="#icon-128"/>
+  </g>
+  
+  <!-- 16x16 icon -->
+  <g id="icon-16" transform="scale(0.125) translate(384 384)">
+    <use href="#icon-128"/>
+  </g>
+</svg>
