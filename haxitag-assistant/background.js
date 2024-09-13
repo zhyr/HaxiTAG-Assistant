@@ -1,17 +1,31 @@
 chrome.runtime.onInstalled.addListener(() => {
   // 初始化存储
-  chrome.storage.sync.get(['instructions', 'contexts'], (result) => {
+  chrome.storage.sync.get(['instructions', 'contexts', 'language'], (result) => {
     if (!result.instructions) {
       chrome.storage.sync.set({ instructions: [] });
     }
     if (!result.contexts) {
       chrome.storage.sync.set({ contexts: [] });
     }
+    if (!result.language) {
+      chrome.storage.sync.set({ language: 'zh' });
+    }
   });
 });
 
-// 在 Manifest V3 中，service worker 可能会被终止，所以需要处理重新激活的情况
-chrome.runtime.onStartup.addListener(() => {
-  console.log('Extension started');
-  // 可以在这里添加任何需要在扩展启动时执行的代码
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "getStorageData") {
+    chrome.storage.sync.get(['instructions', 'contexts', 'language'], (result) => {
+      sendResponse(result);
+    });
+    return true;
+  }
+});
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "toggleExtension") {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      chrome.tabs.sendMessage(tabs[0].id, {action: "toggleExtension", enabled: request.enabled});
+    });
+  }
 });

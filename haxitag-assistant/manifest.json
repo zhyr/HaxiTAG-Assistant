@@ -1,33 +1,36 @@
 {
   "manifest_version": 3,
   "name": "HaxiTAG Assistant",
-  "version": "1.7.0",
-  "description": "HaxiTAG AI助手小工具,支持ChatGPT、Claude、Kimi和通义千问",
+  "version": "2.2.0",
+  "description": "HaxiTAG AI助手小工具,支持ChatGPT、Claude、Kimi、通义千问和ChatGLM",
   "permissions": [
-    "storage"
+    "storage",
+    "clipboardWrite"
   ],
   "host_permissions": [
     "*://chat.openai.com/*",
     "*://chatgpt.com/*",
     "*://claude.ai/*",
     "*://kimi.moonshot.cn/*",
-    "*://tongyi.aliyun.com/*"
+    "*://tongyi.aliyun.com/*",
+    "*://chatglm.cn/*"
   ],
   "background": {
-    "service_worker": "src/background.js"
+    "service_worker": "background.js"
   },
   "content_scripts": [
-    {
-      "matches": [
-        "*://chat.openai.com/*",
-        "*://chatgpt.com/*",
-        "*://claude.ai/*",
-        "*://kimi.moonshot.cn/*",
-        "*://tongyi.aliyun.com/*"
-      ],
-      "js": ["src/content.js"],
-      "css": ["src/styles.css"]
-    }
+  {
+    "matches": [
+      "*://chat.openai.com/*",
+      "*://chatgpt.com/*",
+      "*://claude.ai/*",
+      "*://kimi.moonshot.cn/*",
+      "*://tongyi.aliyun.com/*",
+      "*://chatglm.cn/*"
+    ],
+    "js": ["src/content.js"],
+    "css": ["src/styles.css"]
+  }
   ],
   "action": {
     "default_popup": "src/popup.html",

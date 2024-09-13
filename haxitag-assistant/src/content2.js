@@ -150,7 +150,7 @@
       return document.querySelector('.input-box-inner textarea');
     }
     return null;
-  }
+  }  
   
   function triggerInputEvent(textarea) {
     const inputEvent = new Event("input", { bubbles: true, cancelable: true });
@@ -448,8 +448,7 @@
           if (
             hostname === "chat.openai.com" ||
             hostname === "chatgpt.com" ||
-            hostname === "claude.ai" ||
-            hostname === "kimi.moonshot.cn"
+            hostname === "claude.ai"
           ) {
             this.insertValueIntoTextArea(decodedValue);
           } else {
@@ -459,7 +458,7 @@
       }
     }
 
-    insertValueIntoTextArea(value) {
+    function insertValueIntoTextArea(value) {
       const textareaEle = getTextArea();
       if (textareaEle) {
         const hostname = window.location.hostname;
@@ -510,7 +509,7 @@
         
         triggerInputEvent(textareaEle);
       }
-    }
+    }    
     
     async copyToClipboard(text) {
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -548,41 +547,8 @@
     }
 
     importData(type) {
-      // Instead of setting the value of the file input, we'll create a new one each time
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = '.json';
-      fileInput.style.display = 'none';
-      document.body.appendChild(fileInput);
-    
-      fileInput.addEventListener('change', async (event) => {
-        const file = event.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = async (e) => {
-            try {
-              const data = JSON.parse(e.target.result);
-              if (Array.isArray(data)) {
-                this[`${type}s`] = data;
-                await setValue(`${type}s`, this[`${type}s`]);
-                await this.updateLists();
-                showToast(await _("importSuccess"));
-              } else {
-                throw new Error("Invalid format");
-              }
-            } catch (error) {
-              showToast(await _("importFailed"));
-            }
-          };
-          reader.readAsText(file);
-        } else {
-          showToast(await _("invalidFileFormat"));
-        }
-        // Remove the file input after use
-        document.body.removeChild(fileInput);
-      });
-    
-      fileInput.click();
+      this.elements.importFile.dataset.importType = type;
+      this.elements.importFile.click();
     }
 
     async handleFileImport(event) {

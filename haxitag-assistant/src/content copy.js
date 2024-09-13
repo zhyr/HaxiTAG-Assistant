@@ -28,23 +28,6 @@
     });
   }
 
-    const observer = new MutationObserver((mutations) => {
-    for (let mutation of mutations) {
-      if (mutation.type === 'childList') {
-        const addedNodes = mutation.addedNodes;
-        for (let node of addedNodes) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const input = findInputElement(node);
-            if (input) {
-              setupInputHandler(input);
-              observer.disconnect(); // 找到输入框后停止观察
-              return;
-            }
-          }
-        }
-      }
-    }
-  });
   // Localization
   const i18n = {
     en: {
@@ -136,49 +119,11 @@
     setTimeout(() => toast.remove(), 3000);
   }
 
-  function getTextArea() {
-    const hostname = window.location.hostname;
-    if (hostname === "chat.openai.com" || hostname === "chatgpt.com") {
-      return document.querySelector('#prompt-textarea');
-    } else if (hostname === "claude.ai") {
-      return document.querySelector('div[contenteditable="true"]');
-    } else if (hostname === "kimi.moonshot.cn") {
-      return document.querySelector('.editor___KShcc .editorContentEditable___FZJd9');
-    } else if (hostname === "tongyi.aliyun.com") {
-      return document.querySelector(".ant-input.textarea--g7EUvnQR");
-    } else if (hostname === "chatglm.cn") {
-      return document.querySelector('.input-box-inner textarea');
-    }
-    return null;
-  }
-  
-  function triggerInputEvent(textarea) {
-    const inputEvent = new Event("input", { bubbles: true, cancelable: true });
-    const changeEvent = new Event("change", { bubbles: true, cancelable: true });
-  
-    textarea.dispatchEvent(inputEvent);
-    textarea.dispatchEvent(changeEvent);
-  
-    const hostname = window.location.hostname;
-    if (hostname === "chatgpt.com" || hostname === "chat.openai.com" || 
-        hostname === "chatglm.cn" || hostname === "tongyi.aliyun.com" || 
-        hostname === "kimi.moonshot.cn") {
-      // Simulate React's onChange event
-      if (textarea.tagName.toLowerCase() === 'textarea') {
-        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-          window.HTMLTextAreaElement.prototype,
-          "value"
-        ).set;
-        nativeInputValueSetter.call(textarea, textarea.value);
-      }
-      textarea.dispatchEvent(new Event("input", { bubbles: true }));
-    }
-  }
-
   class HaxitagAssistant {
     constructor() {
       this.isOpen = false;
       this.currentTab = "instruction";
+      this.inputElement = null;
       this.init();
     }
 
@@ -187,6 +132,73 @@
       this.contexts = await getValue("contexts", []);
       await this.initUI();
       this.bindEvents();
+      this.setupDynamicInputDetection();
+    }
+
+    setupDynamicInputDetection() {
+      const observer = new MutationObserver((mutations) => {
+        for (let mutation of mutations) {
+          if (mutation.type === 'childList') {
+            const addedNodes = mutation.addedNodes;
+            for (let node of addedNodes) {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                const input = this.findInputElement(node);
+                if (input) {
+                  this.setInputElement(input);
+                  observer.disconnect();
+                  return;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      // Initial check
+      const initialInput = this.findInputElement(document.body);
+      if (initialInput) {
+        this.setInputElement(initialInput);
+      } else {
+        console.log('Input element not found initially, waiting for changes...');
+      }
+    }
+
+    findInputElement(element) {
+      if (this.isInputElement(element)) {
+        return element;
+      }
+      
+      for (let child of element.children) {
+        const result = this.findInputElement(child);
+        if (result) {
+          return result;
+        }
+      }
+      
+      return null;
+    }
+
+    isInputElement(element) {
+      const tagName = element.tagName.toLowerCase();
+      if (tagName === 'input' || tagName === 'textarea') {
+        return true;
+      }
+      if (tagName === 'div' && element.getAttribute('contenteditable') === 'true') {
+        return true;
+      }
+      // Add more specific checks if needed
+      return false;
+    }
+
+    setInputElement(input) {
+      this.inputElement = input;
+      console.log('Input element found:', input);
+      
+      input.addEventListener('input', (event) => {
+        console.log('Input value changed:', event.target.value);
+      });
     }
 
     async initUI() {
@@ -333,7 +345,7 @@
       document.querySelector("#contextConfirmAdd").addEventListener("click", () => this.addNewPrompt("context"));
       document.querySelector("#contextCancelAdd").addEventListener("click", () => this.toggleAddForm("context"));
 
-// Language selector event
+      // Language selector event
       this.elements.languageSelector.addEventListener("change", (e) => this.changeLanguage(e.target.value));
 
       // Keyboard shortcuts
@@ -444,74 +456,72 @@
         const value = event.target.getAttribute("data-value");
         if (value) {
           const decodedValue = decodeURIComponent(value);
-          const hostname = window.location.hostname;
-          if (
-            hostname === "chat.openai.com" ||
-            hostname === "chatgpt.com" ||
-            hostname === "claude.ai" ||
-            hostname === "kimi.moonshot.cn"
-          ) {
-            this.insertValueIntoTextArea(decodedValue);
-          } else {
-            this.copyToClipboard(decodedValue);
-          }
+          this.insertValueIntoTextArea(decodedValue);
         }
       }
     }
 
     insertValueIntoTextArea(value) {
-      const textareaEle = getTextArea();
-      if (textareaEle) {
+      if (this.inputElement) {
         const hostname = window.location.hostname;
         if (hostname === "chat.openai.com" || hostname === "chatgpt.com") {
-          // For ChatGPT's new interface
-          if (textareaEle.tagName.toLowerCase() === 'div') {
-            // Clear placeholder if present
-            const placeholder = textareaEle.querySelector('p.placeholder');
+          if (this.inputElement.tagName.toLowerCase() === 'div') {
+            const placeholder = this.inputElement.querySelector('p.placeholder');
             if (placeholder) {
               placeholder.remove();
             }
-            // Insert text
             const p = document.createElement('p');
             p.textContent = value;
-            textareaEle.appendChild(p);
+            this.inputElement.appendChild(p);
           } else {
-            // Fallback for textarea
-            textareaEle.value += value + "\n\n";
+            this.inputElement.value += value + "\n\n";
           }
-          textareaEle.dispatchEvent(new Event('input', { bubbles: true }));
         } else if (hostname === "claude.ai" || hostname === "kimi.moonshot.cn") {
-          // For Claude and Kimi interfaces
-          const currentContent = textareaEle.textContent;
-          textareaEle.textContent = currentContent + value + "\n\n";
-          textareaEle.dispatchEvent(new Event('input', { bubbles: true }));
+          this.inputElement.textContent += value + "\n\n";
         } else {
-          // For other interfaces
-          const currentValue = textareaEle.value;
-          const newValue = currentValue + value + "\n\n";
-          textareaEle.value = newValue;
-          textareaEle.style.height = "auto";
-          textareaEle.style.height = textareaEle.scrollHeight + "px";
+          this.inputElement.value += value + "\n\n";
         }
         
-        // Focus and move cursor to end
-        textareaEle.focus();
-        if (textareaEle.setSelectionRange) {
-          textareaEle.setSelectionRange(textareaEle.value.length, textareaEle.value.length);
+        this.inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+        this.inputElement.focus();
+        
+        if (this.inputElement.setSelectionRange) {
+          this.inputElement.setSelectionRange(this.inputElement.value.length, this.inputElement.value.length);
         } else {
-          // For contenteditable divs (ChatGPT, Claude, Kimi)
           const range = document.createRange();
           const sel = window.getSelection();
-          range.selectNodeContents(textareaEle);
+          range.selectNodeContents(this.inputElement);
           range.collapse(false);
           sel.removeAllRanges();
           sel.addRange(range);
         }
         
-        triggerInputEvent(textareaEle);
+        this.triggerInputEvent(this.inputElement);
       }
     }
+
+    triggerInputEvent(textarea) {
+      const inputEvent = new Event("input", { bubbles: true, cancelable: true });
+      const changeEvent = new Event("change", { bubbles: true, cancelable: true });
     
+      textarea.dispatchEvent(inputEvent);
+      textarea.dispatchEvent(changeEvent);
+    
+      const hostname = window.location.hostname;
+      if (hostname === "chatgpt.com" || hostname === "chat.openai.com" || 
+          hostname === "chatglm.cn" || hostname === "tongyi.aliyun.com" || 
+          hostname === "kimi.moonshot.cn") {
+        if (textarea.tagName.toLowerCase() === 'textarea') {
+          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+            window.HTMLTextAreaElement.prototype,
+            "value"
+          ).set;
+          nativeInputValueSetter.call(textarea, textarea.value);
+        }
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
+
     async copyToClipboard(text) {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         try {
@@ -538,51 +548,24 @@
     }
 
     focusAndPositionCursor() {
-      const textareaEle = getTextArea();
-      if (textareaEle) {
-        textareaEle.focus();
-        const currentValue = textareaEle.value;
-        textareaEle.value = currentValue + "\n\n";
-        textareaEle.setSelectionRange(textareaEle.value.length, textareaEle.value.length);
+      if (this.inputElement) {
+        this.inputElement.focus();
+        if (this.inputElement.setSelectionRange) {
+          this.inputElement.setSelectionRange(this.inputElement.value.length, this.inputElement.value.length);
+        } else {
+          const range = document.createRange();
+          const sel = window.getSelection();
+          range.selectNodeContents(this.inputElement);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
       }
     }
 
     importData(type) {
-      // Instead of setting the value of the file input, we'll create a new one each time
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = '.json';
-      fileInput.style.display = 'none';
-      document.body.appendChild(fileInput);
-    
-      fileInput.addEventListener('change', async (event) => {
-        const file = event.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = async (e) => {
-            try {
-              const data = JSON.parse(e.target.result);
-              if (Array.isArray(data)) {
-                this[`${type}s`] = data;
-                await setValue(`${type}s`, this[`${type}s`]);
-                await this.updateLists();
-                showToast(await _("importSuccess"));
-              } else {
-                throw new Error("Invalid format");
-              }
-            } catch (error) {
-              showToast(await _("importFailed"));
-            }
-          };
-          reader.readAsText(file);
-        } else {
-          showToast(await _("invalidFileFormat"));
-        }
-        // Remove the file input after use
-        document.body.removeChild(fileInput);
-      });
-    
-      fileInput.click();
+      this.elements.importFile.dataset.importType = type;
+      this.elements.importFile.click();
     }
 
     async handleFileImport(event) {
@@ -725,226 +708,207 @@
       margin-bottom: 10px;
     }
     .tab-button {
-      flex: 1;
-      padding: 8px;
-      border: none;
-      color: white;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-    .tab-button[data-tab="instruction"] {
-      background-color: rgba(0, 102, 255, 0.8);
-    }
-    .tab-button[data-tab="context"] {
-      background-color: rgba(51, 204, 255, 0.8);
-    }
-    .tab-button:first-child {
-      border-top-left-radius: 5px;
-      border-bottom-left-radius: 5px;
-    }
-    .tab-button:last-child {
-      border-top-right-radius: 5px;
-      border-bottom-right-radius: 5px;
-    }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
-    .function-buttons {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 10px;
-      padding: 5px;
-    }
-    #instructionTab .function-buttons {
-      border: 1px solid #0066FF;
-    }
-    #contextTab .function-buttons {
-      border: 1px solid #33CCFF;
-    }
-    #instructionTab .function-button {
-      color: white !important;
-    }
-    #contextTab .function-button {
-      color: rgba(51, 204, 255, 0.9) !important;
-    }
-    .function-button {
-      background: none !important;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-      padding: 5px;
-    }
-    .function-button:hover {
-      text-decoration: underline;
-    }
-    #instructionSearchInput, #contextSearchInput {
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 8px;
-      background-color: rgba(255, 255, 255, 0.8) !important;
-      color: #333333 !important;
-      border-radius: 3px;
-    }
-    #instructionSearchInput {
-      border: 1px solid #0066FF;
-    }
-    #contextSearchInput {
-      border: 1px solid #33CCFF;
-    }
- .add-prompt-form {
-      margin-top: 10px;
-    }
-    .add-prompt-form input, .add-prompt-form textarea {
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 8px;
-      background-color: rgba(255, 255, 255, 0.8) !important;
-      color: #333333 !important;
-      border-radius: 3px;
-    }
-    #instructionTab .add-prompt-form input, #instructionTab .add-prompt-form textarea {
-      border: 1px solid #0066FF;
-    }
-    #contextTab .add-prompt-form input, #contextTab .add-prompt-form textarea {
-      border: 1px solid #33CCFF;
-    }
-    .add-prompt-form textarea {
-      height: 100px;
-      resize: vertical;
-    }
-    .add-prompt-form button {
-      margin-right: 10px;
-      padding: 6px 10px;
-      cursor: pointer;
-      border-radius: 3px;
-      border: none;
-      color: white !important;
-      transition: background-color 0.3s;
-    }
-    #instructionTab .add-prompt-form button {
-      background-color: rgba(0, 102, 255, 0.8) !important;
-    }
-    #contextTab .add-prompt-form button {
-      background-color: rgba(51, 204, 255, 0.8) !important;
-    }
-    .add-prompt-form button:hover {
-      opacity: 0.8;
-    }
-    #instructionList li, #contextList li {
-      background-color: rgba(255, 255, 255, 0.1) !important;
-      color: #FFFFFF !important;
-      margin-bottom: 10px;
-      padding: 8px;
-      cursor: pointer;
-      border-radius: 3px;
-      position: relative;
-      transition: background-color 0.3s;
-    }
-    #instructionList li {
-      border: 1px solid rgba(0, 102, 255, 0.8);
-    }
-    #contextList li {
-      border: 1px solid rgba(51, 204, 255, 0.8);
-    }
-    #instructionList li:hover, #contextList li:hover {
-      background-color: rgba(255, 255, 255, 0.2) !important;
-    }
-    .delete-button {
-      position: absolute;
-      right: 5px;
-      top: 50%;
-      transform: translateY(-50%);
-      background-color: rgba(255, 51, 51, 0.8) !important;
-      color: white !important;
-      padding: 2px 5px;
-      cursor: pointer;
-      border-radius: 3px;
-      border: none;
-      transition: background-color 0.3s;
-    }
-    .delete-button:hover {
-      background-color: rgba(255, 102, 102, 0.8) !important;
-    }
-    .close-button {
-      background: none;
-      border: none;
-      color: #FFFFFF;
-      font-size: 24px;
-      cursor: pointer;
-    }
-    #languageSelector {
-      background-color: rgba(255, 255, 255, 0.1);
-      color: #FFFFFF;
-      border: 0px solid #0066FF;
-      padding: 5px;
-      border-radius: 3px;
-      cursor: pointer;
-    }
-    #languageSelector option {
-      background-color: #000000;
-      color: #FFFFFF;
-    }
-
-    /* Claude AI specific styles */
-    body[data-page-type="chat"] #haxitagAssistantOpen {
-      white-space: normal;
-      word-wrap: break-word;
-      width: 90px;
-      border: 1px solid #FFFFFF;
-      background-color: #33CCFF;
-      padding: 5px;
-    }
-    body[data-page-type="chat"] #haxitagAssistantOpen span {
-      color: #000000;
-      font-weight: bold;
-      font-size: 14px;
-      text-align: center;
-    }
-    
-  /* ChatGLM specific styles */
-  body[data-page-type="chat"] #haxitagAssistantOpen {
-    z-index: 1002; /* Ensure it's above ChatGLM's elements */
-  }
-
-  body[data-page-type="chat"] #haxitagAssistantMain {
-    z-index: 1003; /* Ensure it's above ChatGLM's elements */
-  }
-
-  /* Adjust the position of the open button for ChatGLM */
-  body[data-page-type="chat"] #haxitagAssistantOpen {
-    top: 70px; /* Adjust as needed */
-    right: 20px;
-  }  
-  `);
-
-  const observer = new MutationObserver((mutations) => {
-    for (let mutation of mutations) {
-      if (mutation.type === 'childList') {
-        const addedNodes = mutation.addedNodes;
-        for (let node of addedNodes) {
-          if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('input-box-inner')) {
-            // Reinitialize or update HaxiTAG Assistant if necessary
-            if (!document.querySelector(`#${HAXITAG_ASSISTANT_ID}`)) {
-              new HaxitagAssistant();
-              console.log("HaxiTAG Assistant has been loaded after dynamic content change!");
-            }
-            observer.disconnect(); // Stop observing once we've found our target
-            return;
-          }
+          flex: 1;
+          padding: 8px;
+          border: none;
+          color: white;
+          cursor: pointer;
+          transition: background-color 0.3s;
         }
-      }
-    }
-  });
-  
-  observer.observe(document.body, { childList: true, subtree: true });
-  // Initialize the assistant
-  window.addEventListener("load", function () {
-    if (!document.querySelector(`#${HAXITAG_ASSISTANT_ID}`)) {
-      new HaxitagAssistant();
-      console.log("HaxiTAG Assistant has been loaded!");
-    }
-  });
-})();
+        .tab-button[data-tab="instruction"] {
+          background-color: rgba(0, 102, 255, 0.8);
+        }
+        .tab-button[data-tab="context"] {
+          background-color: rgba(51, 204, 255, 0.8);
+        }
+        .tab-button:first-child {
+          border-top-left-radius: 5px;
+          border-bottom-left-radius: 5px;
+        }
+        .tab-button:last-child {
+          border-top-right-radius: 5px;
+          border-bottom-right-radius: 5px;
+        }
+        .tab-content {
+          display: none;
+        }
+        .tab-content.active {
+          display: block;
+        }
+        .function-buttons {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+          padding: 5px;
+        }
+        #instructionTab .function-buttons {
+          border: 1px solid #0066FF;
+        }
+        #contextTab .function-buttons {
+          border: 1px solid #33CCFF;
+        }
+        #instructionTab .function-button {
+          color: white !important;
+        }
+        #contextTab .function-button {
+          color: rgba(51, 204, 255, 0.9) !important;
+        }
+        .function-button {
+          background: none !important;
+          border: none;
+          cursor: pointer;
+          font-size: 14px;
+          padding: 5px;
+        }
+        .function-button:hover {
+          text-decoration: underline;
+        }
+        #instructionSearchInput, #contextSearchInput {
+          width: 100%;
+          margin-bottom: 10px;
+          padding: 8px;
+          background-color: rgba(255, 255, 255, 0.8) !important;
+          color: #333333 !important;
+          border-radius: 3px;
+        }
+        #instructionSearchInput {
+          border: 1px solid #0066FF;
+        }
+        #contextSearchInput {
+          border: 1px solid #33CCFF;
+        }
+        .add-prompt-form {
+          margin-top: 10px;
+        }
+        .add-prompt-form input, .add-prompt-form textarea {
+          width: 100%;
+          margin-bottom: 10px;
+          padding: 8px;
+          background-color: rgba(255, 255, 255, 0.8) !important;
+          color: #333333 !important;
+          border-radius: 3px;
+        }
+        #instructionTab .add-prompt-form input, #instructionTab .add-prompt-form textarea {
+          border: 1px solid #0066FF;
+        }
+        #contextTab .add-prompt-form input, #contextTab .add-prompt-form textarea {
+          border: 1px solid #33CCFF;
+        }
+        .add-prompt-form textarea {
+          height: 100px;
+          resize: vertical;
+        }
+        .add-prompt-form button {
+          margin-right: 10px;
+          padding: 6px 10px;
+          cursor: pointer;
+          border-radius: 3px;
+          border: none;
+          color: white !important;
+          transition: background-color 0.3s;
+        }
+        #instructionTab .add-prompt-form button {
+          background-color: rgba(0, 102, 255, 0.8) !important;
+        }
+        #contextTab .add-prompt-form button {
+          background-color: rgba(51, 204, 255, 0.8) !important;
+        }
+        .add-prompt-form button:hover {
+          opacity: 0.8;
+        }
+        #instructionList li, #contextList li {
+          background-color: rgba(255, 255, 255, 0.1) !important;
+          color: #FFFFFF !important;
+          margin-bottom: 10px;
+          padding: 8px;
+          cursor: pointer;
+          border-radius: 3px;
+          position: relative;
+          transition: background-color 0.3s;
+        }
+        #instructionList li {
+          border: 1px solid rgba(0, 102, 255, 0.8);
+        }
+        #contextList li {
+          border: 1px solid rgba(51, 204, 255, 0.8);
+        }
+        #instructionList li:hover, #contextList li:hover {
+          background-color: rgba(255, 255, 255, 0.2) !important;
+        }
+        .delete-button {
+          position: absolute;
+          right: 5px;
+          top: 50%;
+          transform: translateY(-50%);
+          background-color: rgba(255, 51, 51, 0.8) !important;
+          color: white !important;
+          padding: 2px 5px;
+          cursor: pointer;
+          border-radius: 3px;
+          border: none;
+          transition: background-color 0.3s;
+        }
+        .delete-button:hover {
+          background-color: rgba(255, 102, 102, 0.8) !important;
+        }
+        .close-button {
+          background: none;
+          border: none;
+          color: #FFFFFF;
+          font-size: 24px;
+          cursor: pointer;
+        }
+        #languageSelector {
+          background-color: rgba(255, 255, 255, 0.1);
+          color: #FFFFFF;
+          border: 0px solid #0066FF;
+          padding: 5px;
+          border-radius: 3px;
+          cursor: pointer;
+        }
+        #languageSelector option {
+          background-color: #000000;
+          color: #FFFFFF;
+        }
+
+        /* Claude AI specific styles */
+        body[data-page-type="chat"] #haxitagAssistantOpen {
+          white-space: normal;
+          word-wrap: break-word;
+          width: 90px;
+          border: 1px solid #FFFFFF;
+          background-color: #33CCFF;
+          padding: 5px;
+        }
+        body[data-page-type="chat"] #haxitagAssistantOpen span {
+          color: #000000;
+          font-weight: bold;
+          font-size: 14px;
+          text-align: center;
+        }
+        
+        /* ChatGLM specific styles */
+        body[data-page-type="chat"] #haxitagAssistantOpen {
+          z-index: 1002; /* Ensure it's above ChatGLM's elements */
+        }
+
+        body[data-page-type="chat"] #haxitagAssistantMain {
+          z-index: 1003; /* Ensure it's above ChatGLM's elements */
+        }
+
+        /* Adjust the position of the open button for ChatGLM */
+        body[data-page-type="chat"] #haxitagAssistantOpen {
+          top: 70px; /* Adjust as needed */
+          right: 20px;
+        }
+      `);
+
+      // Initialize the assistant
+   window.addEventListener("load", function () {
+        if (!document.querySelector(`#${HAXITAG_ASSISTANT_ID}`)) {
+          window.haxitagAssistant = new HaxitagAssistant();
+          console.log("HaxiTAG Assistant has been loaded!");
+        }
+      });
+
+    })();
