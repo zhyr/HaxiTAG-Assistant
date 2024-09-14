@@ -4,20 +4,20 @@
   // Constants
   const LOGO_URL = "https://raw.githubusercontent.com/zhyr/HaxiTAG-Assistant/main/icon/icon.png";
   const HAXITAG_ASSISTANT_ID = "haxitagAssistant";
+  const PLATFORM_SELECTORS = {
+    'chat.openai.com': 'textarea',
+    'chatgpt.com': 'textarea',
+    'claude.ai': 'div[contenteditable="true"]',
+    'kimi.moonshot.cn': '.editorContentEditable___FZJd9,.cm-content',
+    'tongyi.aliyun.com': 'textarea[placeholder*="唤起指令中心"], .ant-input.css-1r287do.ant-input-outlined.textarea--g7EUvnQR, .ant-input.textarea--g7EUvnQR',
+    'chatglm.cn': '#search-input-box textarea,#chat-input-box'
+  };
 
   // Helper functions
   function addStyle(css) {
     const style = document.createElement("style");
     style.textContent = css;
     document.head.appendChild(style);
-  }
-
-  function getValue(key, defaultValue) {
-    return new Promise((resolve) => {
-      chrome.storage.sync.get(key, (result) => {
-        resolve(result[key] !== undefined ? result[key] : defaultValue);
-      });
-    });
   }
 
   function setValue(key, value) {
@@ -28,23 +28,14 @@
     });
   }
 
-    const observer = new MutationObserver((mutations) => {
-    for (let mutation of mutations) {
-      if (mutation.type === 'childList') {
-        const addedNodes = mutation.addedNodes;
-        for (let node of addedNodes) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const input = findInputElement(node);
-            if (input) {
-              setupInputHandler(input);
-              observer.disconnect(); // 找到输入框后停止观察
-              return;
-            }
-          }
-        }
-      }
-    }
-  });
+  function getValue(key, defaultValue) {
+    return new Promise((resolve) => {
+      chrome.storage.sync.get(key, (result) => {
+        resolve(result[key] !== undefined ? result[key] : defaultValue);
+      });
+    });
+  }
+
   // Localization
   const i18n = {
     en: {
@@ -66,14 +57,19 @@
       confirm: "Confirm",
       delete: "Delete",
       promptAddedSuccess: "Added successfully!",
+      promptEditedSuccess: "Edited successfully!",
       promptDeletedSuccess: "Deleted successfully!",
       promptCopiedSuccess: "Copied to clipboard!",
-      promptCopyFailed: "Failed to copy. Please try again.",
       importSuccess: "Data imported successfully!",
       importFailed: "Failed to import data. Please check the file format.",
       exportSuccess: "Data exported successfully!",
       invalidFileFormat: "Invalid file format. Please select a JSON file.",
       language: "Language",
+      confirmDelete: "Are you sure you want to delete this item?",
+      promptInsertedSuccess: "Text inserted successfully!",
+      promptInsertFailed: "Failed to insert text. Text copied to clipboard instead. Please paste manually (Ctrl+V or Command+V).",
+      promptCopiedToClipboard: "Text copied to clipboard. Please paste manually if not automatically inserted.",
+      promptCopyFailed: "Failed to copy. Please try again.",
     },
     zh: {
       close: "关闭",
@@ -94,6 +90,7 @@
       confirm: "确认",
       delete: "删除",
       promptAddedSuccess: "添加成功！",
+      promptEditedSuccess: "编辑成功！",
       promptDeletedSuccess: "删除成功！",
       promptCopiedSuccess: "已复制到剪贴板！",
       promptCopyFailed: "复制失败，请重试。",
@@ -102,6 +99,10 @@
       exportSuccess: "数据导出成功！",
       invalidFileFormat: "无效的文件格式。请选择JSON文件。",
       language: "语言",
+      promptInsertedSuccess: "文本已成功插入！",
+      promptInsertFailed: "插入文本失败。请尝试手动粘贴。",
+      promptCopiedToClipboard: "文本已复制到剪贴板。请手动粘贴（Ctrl+V 或 Command+V）。",
+      confirmDelete: "您确定要删除这个项目吗？",
     },
   };
 
@@ -119,51 +120,49 @@
   }
 
   function showToast(message) {
-    const toast = document.createElement("div");
+    let toast = document.getElementById('haxitag-tips');
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = 'haxitag-tips';
+      Object.assign(toast.style, {
+        position: "fixed",
+        bottom: "120px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        backgroundColor: "rgba(0, 0, 0, 0.7)",
+        color: "white",
+        padding: "10px 20px",
+        borderRadius: "5px",
+        zIndex: "10002",
+        opacity: "0",
+        transition: "opacity 0.3s ease-in-out",
+      });
+      document.body.appendChild(toast);
+    }
     toast.textContent = message;
-    Object.assign(toast.style, {
-      position: "fixed",
-      bottom: "20px",
-      left: "50%",
-      transform: "translateX(-50%)",
-      backgroundColor: "rgba(0, 102, 255, 0.9)",
-      color: "white",
-      padding: "10px",
-      borderRadius: "5px",
-      zIndex: "10002",
-    });
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+    toast.style.opacity = "1";
+    setTimeout(() => {
+      toast.style.opacity = "0";
+    }, 3000);
   }
 
   function getTextArea() {
     const hostname = window.location.hostname;
-    if (hostname === "chat.openai.com" || hostname === "chatgpt.com") {
-      return document.querySelector('#prompt-textarea');
-    } else if (hostname === "claude.ai") {
-      return document.querySelector('div[contenteditable="true"]');
-    } else if (hostname === "kimi.moonshot.cn") {
-      return document.querySelector('.editor___KShcc .editorContentEditable___FZJd9');
-    } else if (hostname === "tongyi.aliyun.com") {
-      return document.querySelector(".ant-input.textarea--g7EUvnQR");
-    } else if (hostname === "chatglm.cn") {
-      return document.querySelector('.input-box-inner textarea');
-    }
-    return null;
+    const selector = PLATFORM_SELECTORS[hostname];
+    return selector ? document.querySelector(selector) : null;
   }
-  
+
   function triggerInputEvent(textarea) {
     const inputEvent = new Event("input", { bubbles: true, cancelable: true });
     const changeEvent = new Event("change", { bubbles: true, cancelable: true });
-  
+
     textarea.dispatchEvent(inputEvent);
     textarea.dispatchEvent(changeEvent);
-  
+
     const hostname = window.location.hostname;
     if (hostname === "chatgpt.com" || hostname === "chat.openai.com" || 
         hostname === "chatglm.cn" || hostname === "tongyi.aliyun.com" || 
         hostname === "kimi.moonshot.cn") {
-      // Simulate React's onChange event
       if (textarea.tagName.toLowerCase() === 'textarea') {
         const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
           window.HTMLTextAreaElement.prototype,
@@ -179,6 +178,7 @@
     constructor() {
       this.isOpen = false;
       this.currentTab = "instruction";
+      this.inputElement = null;
       this.init();
     }
 
@@ -187,6 +187,73 @@
       this.contexts = await getValue("contexts", []);
       await this.initUI();
       this.bindEvents();
+      this.setupDynamicInputDetection();
+    }
+
+    setupDynamicInputDetection() {
+      const observer = new MutationObserver((mutations) => {
+        for (let mutation of mutations) {
+          if (mutation.type === 'childList') {
+            const addedNodes = mutation.addedNodes;
+            for (let node of addedNodes) {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                const input = this.findInputElement(node);
+                if (input) {
+                  this.setInputElement(input);
+                  observer.disconnect();
+                  return;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      // Initial check
+      const initialInput = this.findInputElement(document.body);
+      if (initialInput) {
+        this.setInputElement(initialInput);
+      } else {
+        console.log('Input element not found initially, waiting for changes...');
+      }
+    }
+
+    findInputElement(element) {
+      if (this.isInputElement(element)) {
+        return element;
+      }
+      
+      for (let child of element.children) {
+        const result = this.findInputElement(child);
+        if (result) {
+          return result;
+        }
+      }
+      
+      return null;
+    }
+
+    isInputElement(element) {
+      const tagName = element.tagName.toLowerCase();
+      if (tagName === 'input' || tagName === 'textarea') {
+        return true;
+      }
+      if (tagName === 'div' && element.getAttribute('contenteditable') === 'true') {
+        return true;
+      }
+      // Add more specific checks if needed
+      return false;
+    }
+
+    setInputElement(input) {
+      this.inputElement = input;
+      console.log('Input element found:', input);
+      
+      input.addEventListener('input', (event) => {
+        console.log('Input value changed:', event.target.value);
+      });
     }
 
     async initUI() {
@@ -333,7 +400,7 @@
       document.querySelector("#contextConfirmAdd").addEventListener("click", () => this.addNewPrompt("context"));
       document.querySelector("#contextCancelAdd").addEventListener("click", () => this.toggleAddForm("context"));
 
-// Language selector event
+      // Language selector event
       this.elements.languageSelector.addEventListener("change", (e) => this.changeLanguage(e.target.value));
 
       // Keyboard shortcuts
@@ -444,145 +511,79 @@
         const value = event.target.getAttribute("data-value");
         if (value) {
           const decodedValue = decodeURIComponent(value);
-          const hostname = window.location.hostname;
-          if (
-            hostname === "chat.openai.com" ||
-            hostname === "chatgpt.com" ||
-            hostname === "claude.ai" ||
-            hostname === "kimi.moonshot.cn"
-          ) {
-            this.insertValueIntoTextArea(decodedValue);
-          } else {
-            this.copyToClipboard(decodedValue);
-          }
+          this.insertValueIntoTextArea(decodedValue);
         }
       }
     }
 
     insertValueIntoTextArea(value) {
-      const textareaEle = getTextArea();
-      if (textareaEle) {
+      if (this.inputElement) {
         const hostname = window.location.hostname;
         if (hostname === "chat.openai.com" || hostname === "chatgpt.com") {
-          // For ChatGPT's new interface
-          if (textareaEle.tagName.toLowerCase() === 'div') {
-            // Clear placeholder if present
-            const placeholder = textareaEle.querySelector('p.placeholder');
+          if (this.inputElement.tagName.toLowerCase() === 'div') {
+            const placeholder = this.inputElement.querySelector('p.placeholder');
             if (placeholder) {
               placeholder.remove();
             }
-            // Insert text
             const p = document.createElement('p');
             p.textContent = value;
-            textareaEle.appendChild(p);
+            this.inputElement.appendChild(p);
           } else {
-            // Fallback for textarea
-            textareaEle.value += value + "\n\n";
+            this.inputElement.value += value + "\n\n";
           }
-          textareaEle.dispatchEvent(new Event('input', { bubbles: true }));
         } else if (hostname === "claude.ai" || hostname === "kimi.moonshot.cn") {
-          // For Claude and Kimi interfaces
-          const currentContent = textareaEle.textContent;
-          textareaEle.textContent = currentContent + value + "\n\n";
-          textareaEle.dispatchEvent(new Event('input', { bubbles: true }));
+          this.inputElement.textContent += value + "\n\n";
         } else {
-          // For other interfaces
-          const currentValue = textareaEle.value;
-          const newValue = currentValue + value + "\n\n";
-          textareaEle.value = newValue;
-          textareaEle.style.height = "auto";
-          textareaEle.style.height = textareaEle.scrollHeight + "px";
+          this.inputElement.value += value + "\n\n";
         }
         
-        // Focus and move cursor to end
-        textareaEle.focus();
-        if (textareaEle.setSelectionRange) {
-          textareaEle.setSelectionRange(textareaEle.value.length, textareaEle.value.length);
+        this.inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+        this.inputElement.focus();
+        
+        if (this.inputElement.setSelectionRange) {
+          this.inputElement.setSelectionRange(this.inputElement.value.length, this.inputElement.value.length);
         } else {
-          // For contenteditable divs (ChatGPT, Claude, Kimi)
           const range = document.createRange();
           const sel = window.getSelection();
-          range.selectNodeContents(textareaEle);
+          range.selectNodeContents(this.inputElement);
           range.collapse(false);
           sel.removeAllRanges();
           sel.addRange(range);
         }
         
-        triggerInputEvent(textareaEle);
+        triggerInputEvent(this.inputElement);
       }
     }
-    
+
     async copyToClipboard(text) {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        try {
-          await navigator.clipboard.writeText(text);
-          showToast(await _("promptCopiedSuccess"));
-          this.focusAndPositionCursor();
-        } catch (err) {
-          showToast(await _("promptCopyFailed"));
-        }
-      } else {
-        const textarea = document.createElement("textarea");
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        try {
-          document.execCommand("copy");
-          showToast(await _("promptCopiedSuccess"));
-          this.focusAndPositionCursor();
-        } catch (err) {
-          showToast(await _("promptCopyFailed"));
-        }
-        document.body.removeChild(textarea);
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(await _("promptCopiedSuccess"));
+        this.focusAndPositionCursor();
+      } catch (err) {
+        showToast(await _("promptCopyFailed"));
       }
     }
 
     focusAndPositionCursor() {
-      const textareaEle = getTextArea();
-      if (textareaEle) {
-        textareaEle.focus();
-        const currentValue = textareaEle.value;
-        textareaEle.value = currentValue + "\n\n";
-        textareaEle.setSelectionRange(textareaEle.value.length, textareaEle.value.length);
+      if (this.inputElement) {
+        this.inputElement.focus();
+        if (this.inputElement.setSelectionRange) {
+          this.inputElement.setSelectionRange(this.inputElement.value.length, this.inputElement.value.length);
+        } else {
+          const range = document.createRange();
+          const sel = window.getSelection();
+          range.selectNodeContents(this.inputElement);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
       }
     }
 
     importData(type) {
-      // Instead of setting the value of the file input, we'll create a new one each time
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = '.json';
-      fileInput.style.display = 'none';
-      document.body.appendChild(fileInput);
-    
-      fileInput.addEventListener('change', async (event) => {
-        const file = event.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = async (e) => {
-            try {
-              const data = JSON.parse(e.target.result);
-              if (Array.isArray(data)) {
-                this[`${type}s`] = data;
-                await setValue(`${type}s`, this[`${type}s`]);
-                await this.updateLists();
-                showToast(await _("importSuccess"));
-              } else {
-                throw new Error("Invalid format");
-              }
-            } catch (error) {
-              showToast(await _("importFailed"));
-            }
-          };
-          reader.readAsText(file);
-        } else {
-          showToast(await _("invalidFileFormat"));
-        }
-        // Remove the file input after use
-        document.body.removeChild(fileInput);
-      });
-    
-      fileInput.click();
+      this.elements.importFile.dataset.importType = type;
+      this.elements.importFile.click();
     }
 
     async handleFileImport(event) {
@@ -794,7 +795,7 @@
     #contextSearchInput {
       border: 1px solid #33CCFF;
     }
- .add-prompt-form {
+    .add-prompt-form {
       margin-top: 10px;
     }
     .add-prompt-form input, .add-prompt-form textarea {
@@ -904,47 +905,47 @@
       text-align: center;
     }
     
-  /* ChatGLM specific styles */
-  body[data-page-type="chat"] #haxitagAssistantOpen {
-    z-index: 1002; /* Ensure it's above ChatGLM's elements */
-  }
+    /* ChatGLM specific styles */
+    body[data-page-type="chat"] #haxitagAssistantOpen {
+      z-index: 1002; /* Ensure it's above ChatGLM's elements */
+    }
 
-  body[data-page-type="chat"] #haxitagAssistantMain {
-    z-index: 1003; /* Ensure it's above ChatGLM's elements */
-  }
+    body[data-page-type="chat"] #haxitagAssistantMain {
+      z-index: 1003; /* Ensure it's above ChatGLM's elements */
+    }
 
-  /* Adjust the position of the open button for ChatGLM */
-  body[data-page-type="chat"] #haxitagAssistantOpen {
-    top: 70px; /* Adjust as needed */
-    right: 20px;
-  }  
+    /* Adjust the position of the open button for ChatGLM */
+    body[data-page-type="chat"] #haxitagAssistantOpen {
+      top: 70px; /* Adjust as needed */
+      right: 20px;
+    }  
   `);
 
-  const observer = new MutationObserver((mutations) => {
-    for (let mutation of mutations) {
-      if (mutation.type === 'childList') {
-        const addedNodes = mutation.addedNodes;
-        for (let node of addedNodes) {
-          if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('input-box-inner')) {
-            // Reinitialize or update HaxiTAG Assistant if necessary
-            if (!document.querySelector(`#${HAXITAG_ASSISTANT_ID}`)) {
-              new HaxitagAssistant();
-              console.log("HaxiTAG Assistant has been loaded after dynamic content change!");
-            }
-            observer.disconnect(); // Stop observing once we've found our target
-            return;
-          }
+  // Initialize the assistant
+  function initHaxitagAssistant() {
+    const hostname = window.location.hostname;
+    const selector = PLATFORM_SELECTORS[hostname];
+
+    if (!selector) {
+      console.warn('Unsupported platform');
+      return;
+    }
+
+    const initInterval = setInterval(() => {
+      const chatInterface = document.querySelector(selector);
+      if (chatInterface) {
+        clearInterval(initInterval);
+        if (!document.querySelector(`#${HAXITAG_ASSISTANT_ID}`)) {
+          new HaxitagAssistant();
+          console.log("HaxiTAG Assistant has been loaded!");
         }
       }
-    }
-  });
-  
-  observer.observe(document.body, { childList: true, subtree: true });
-  // Initialize the assistant
-  window.addEventListener("load", function () {
-    if (!document.querySelector(`#${HAXITAG_ASSISTANT_ID}`)) {
-      new HaxitagAssistant();
-      console.log("HaxiTAG Assistant has been loaded!");
-    }
-  });
+    }, 500);
+
+    // Set a timeout to prevent infinite waiting
+    setTimeout(() => clearInterval(initInterval), 10000);
+  }
+
+  // Initialize HaxiTAG Assistant
+  initHaxitagAssistant();
 })();
