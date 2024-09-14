@@ -3,15 +3,13 @@ HaxiTAG Assistant personal chatbot plugin for personalised task. Personalized ta
 ![chatGPT](https://github.com/zhyr/HaxiTAG-Assistant/blob/main/images/chatGPT.png)
 
 You can use online chatgpt, Claude ai, kimi and qwen online services. Support the interaction front-end of local models such as openwebui using local models.
-
-![claude](https://github.com/zhyr/HaxiTAG-Assistant/blob/main/images/Claude.png)
-
+![demo gif](https://github.com/zhyr/HaxiTAG-Assistant/blob/main/images/20240914-085231.gif)
 -when you visit chatGPT, Claude AI,kimi,Tongyi qianwen chatbot, you can use this plug-in management of the instruction, context text, significantly reducing your work to repeat the information back and forth carry.
 
 -what is instruction, in the HaxiTAG team work language, generally refers to, hope that the chatbot to perform the task and the requirements of the task. In the working framework of the pre-training model, it also refers to the fine-tuning of the task or intent understanding.
 
 -What is context, in the HaxiTAG team work language, generally refers to, the requirements that the chatbot is expected to perform, such as the style of writing the article, the reasoning logic, the CoT path, and so on. There may be minor differences in the details in each session of the task, so inserting a dialog box or copy and paste through a plugin will balance flexibility and stability.
-
+![claude](https://github.com/zhyr/HaxiTAG-Assistant/blob/main/images/Claude.png)
  support Scheduled tasks,hosted by personlity at localhost, work with chrome and etc. browser.
 
 ## Usage Steps：
