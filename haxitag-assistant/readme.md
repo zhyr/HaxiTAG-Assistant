@@ -1,6 +1,6 @@
 # HaxiTAG Assistant Chrome Extension
 
-HaxiTAG AI助手小工具,支持ChatGPT、Claude、Kimi和通义千问。
+HaxiTAG AI助手小工具,支持ChatGPT、Claude、Kimi和通义千问,chatGLM。
 
 ## 功能
 
@@ -25,3 +25,8 @@ HaxiTAG AI助手小工具,支持ChatGPT、Claude、Kimi和通义千问。
 - Claude (claude.ai)
 - Kimi (kimi.moonshot.cn)
 - 通义千问 (tongyi.aliyun.com)
+
+## 更新v2.2
+增加chatglm
+增加逻辑优化，能插入chat input直接插入，不能则复制intruction或者context，提示粘贴。
+优化react动态前端渲染的支持
